@@ -49,8 +49,6 @@ public class FFZip {
         try (BufferedReader reader = new BufferedReader(new FileReader(inputFile))) {
             List<LZCode> lzCodes = new ArrayList<>();
 
-            Crutch crutch;
-
             int offset;
             int length;
             char discordLetter;
@@ -149,47 +147,4 @@ public class FFZip {
         if (c == '\u0000') return '0';
         else return '1';
     }
-
-    private record Crutch(ArrayList<LZ77Code> lz77Codes, int bufferSize, int dictSize, boolean isCrutch) {
-    }
-
-    private Crutch checkIsSep(BufferedReader reader) throws IOException {
-
-        ArrayList<LZ77Code> lz77Codes = new ArrayList<>();
-
-        int offset;
-        int length;
-        char discordLetter;
-        boolean isCrutch = false;
-
-        while (true) {
-            offset = reader.read();
-            length = reader.read();
-            discordLetter = (char) reader.read();
-
-            lz77Codes.add(new LZ77Code(offset, length, discordLetter));
-
-            if (offset == 0 && length == 0 && discordLetter == '0') {
-                if (lz77Codes.size() == 3) {
-                    isCrutch = true;
-
-                    offset = reader.read();
-                    length = reader.read();
-
-                    if (offset == 0 && length == 0) {
-                        reader.read();
-                    }
-
-                    break;
-                }
-
-                continue;
-            }
-
-            break;
-        }
-
-        return new Crutch(lz77Codes, offset, length, isCrutch);
-    };
-
 }
