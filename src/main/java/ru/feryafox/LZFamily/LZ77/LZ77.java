@@ -20,7 +20,7 @@ public final class LZ77 implements LZBase {
         Queue<Character> buffer = new ArrayDeque<>();
 
         int c = 0;
-        while (c < bufferSize) {
+        while (c < bufferSize && c < s.length()) {
             buffer.add(s.charAt(c));
             c++;
         }
@@ -84,9 +84,9 @@ public final class LZ77 implements LZBase {
         }
 
 
-        System.out.println(buffer);
-        System.out.println(dict);
-        System.out.println(result.toString());
+//        System.out.println(buffer);
+//        System.out.println(dict);
+//        System.out.println(result.toString());
 
         return new LZResult(new LZ77CodeInfo(dictSize, bufferSize), result);
     }
@@ -106,6 +106,8 @@ public final class LZ77 implements LZBase {
         }
 
         for (LZCode c : coded.code()) {
+
+
             LZ77Code code = (LZ77Code) c;
             if ((code.getLength() == 0 && code.getOffset() == 0)) {
                 result.append(code.getDiscordLetter());

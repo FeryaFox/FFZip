@@ -5,7 +5,6 @@ import ru.feryafox.Huffman.Huffman;
 import ru.feryafox.Huffman.HuffmanResult;
 import ru.feryafox.LZFamily.Base.LZBase;
 import ru.feryafox.LZFamily.Base.LZCode;
-import ru.feryafox.LZFamily.Base.LZCodeInfo;
 import ru.feryafox.LZFamily.Base.LZResult;
 import ru.feryafox.LZFamily.LZ77.LZ77;
 import ru.feryafox.LZFamily.LZ77.LZ77Code;
@@ -13,7 +12,9 @@ import ru.feryafox.LZFamily.LZ77.LZ77CodeInfo;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class FFZip {
     private final LZBase lzBase = new LZ77();
@@ -22,11 +23,10 @@ public class FFZip {
         try (BufferedReader reader = new BufferedReader(new FileReader(inputFile))) {
             StringBuilder fileContent = new StringBuilder();
             String line;
+
             while ((line = reader.readLine()) != null) {
                 fileContent.append(line).append("\n");
             }
-
-            fileContent.toString();
 
             HuffmanResult hr = Huffman.code(fileContent.toString());
             LZResult lzCodeInfo = lzBase.code(hr.codeString(), dictSize, bufferSize);
@@ -49,26 +49,49 @@ public class FFZip {
         try (BufferedReader reader = new BufferedReader(new FileReader(inputFile))) {
             List<LZCode> lzCodes = new ArrayList<>();
 
+            Crutch crutch;
+
             int offset;
             int length;
             char discordLetter;
+            int discordLetterT;
             while ((offset = reader.read()) != -1) {
                 length = reader.read();
-                discordLetter = (char) reader.read();
-                System.out.println(discordLetter);
-                LZ77Code code = new LZ77Code(offset, length, discordLetter);
-                lzCodes.add(code);
+                discordLetterT = reader.read();
+
+
+                if (offset == 65535 || length == 65535 || discordLetterT == 65535) {
+                    break;
+                }
+
+                lzCodes.add(new LZ77Code(offset, length, convertUnicodeToChar((char) discordLetterT)));
+
             }
 
-            System.out.println(lzBase.decode(new LZResult(new LZ77CodeInfo(9, 8), lzCodes)));
-//            LZResult lzResult = new LZResult(lzCodes);
-//            String decodedString = lzBase.decode(lzResult);
+            if (offset == -1) {
+                System.out.println("Файл слишком поврежден или имеет неверный формат");
+            }
 
-//            try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
-//                writer.write(decodedString);
-//            } catch (IOException e) {
-//                System.err.println("Ошибка при записи в файл: " + e.getMessage());
-//            }
+            while ((offset = reader.read()) == 65535) {}
+
+            int dictSize = offset;
+            int bufferSize = reader.read();
+
+            Map<Character, Integer> frequencies = new HashMap<>();
+
+            while ((offset = reader.read()) != -1) {
+                Character c = (char) offset;
+                frequencies.put(c, reader.read());
+            }
+
+            String lzResult = lzBase.decode(new LZResult(new LZ77CodeInfo(dictSize, bufferSize), lzCodes));
+            String decodedString = Huffman.decode(new HuffmanResult(frequencies, lzResult));
+
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
+                writer.write(decodedString);
+            } catch (IOException e) {
+                System.err.println("Ошибка при записи в файл: " + e.getMessage());
+            }
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         } catch (IOException e) {
@@ -84,6 +107,18 @@ public class FFZip {
                 writer.write(lz77Code.getLength());
                 writer.write(convertCharToByte(lz77Code.getDiscordLetter()));
             }
+
+            for (int i = 0; i < 9; i++) {
+                writer.write(Integer.MAX_VALUE);
+            }
+            writer.write(((LZ77CodeInfo) lzResult.codeInfo()).getDictSize());
+            writer.write(((LZ77CodeInfo) lzResult.codeInfo()).getBuffSize());
+
+            for (Character c : huffmanResult.frequencies().keySet()) {
+                writer.write(c);
+                writer.write(huffmanResult.frequencies().get(c));
+            }
+
             System.out.println("Данные успешно записаны в файл.");
         } catch (IOException e) {
             System.err.println("Ошибка при записи в файл: " + e.getMessage());
@@ -102,8 +137,59 @@ public class FFZip {
         }
     }
 
+
+    // моя любимая рубрика: костыли.... кто видит это... простите... не хотел...
+    // ПРОШУ, НЕ СМОТРИТЕ... ПРОШУ... УМОЛЯЮ... БЕРЕГИТЕ ПСИХИКУ СВОЮ...
     private byte convertCharToByte(char c) {
         if (c == '0') return 0;
         return 1;
     }
+
+    private char convertUnicodeToChar(char c) {
+        if (c == '\u0000') return '0';
+        else return '1';
+    }
+
+    private record Crutch(ArrayList<LZ77Code> lz77Codes, int bufferSize, int dictSize, boolean isCrutch) {
+    }
+
+    private Crutch checkIsSep(BufferedReader reader) throws IOException {
+
+        ArrayList<LZ77Code> lz77Codes = new ArrayList<>();
+
+        int offset;
+        int length;
+        char discordLetter;
+        boolean isCrutch = false;
+
+        while (true) {
+            offset = reader.read();
+            length = reader.read();
+            discordLetter = (char) reader.read();
+
+            lz77Codes.add(new LZ77Code(offset, length, discordLetter));
+
+            if (offset == 0 && length == 0 && discordLetter == '0') {
+                if (lz77Codes.size() == 3) {
+                    isCrutch = true;
+
+                    offset = reader.read();
+                    length = reader.read();
+
+                    if (offset == 0 && length == 0) {
+                        reader.read();
+                    }
+
+                    break;
+                }
+
+                continue;
+            }
+
+            break;
+        }
+
+        return new Crutch(lz77Codes, offset, length, isCrutch);
+    };
+
 }
