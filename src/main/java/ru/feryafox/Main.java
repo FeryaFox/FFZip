@@ -6,6 +6,8 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import ru.feryafox.FFZip.FFZip;
+import ru.feryafox.FFZip.FileAreDamaged;
+import ru.feryafox.FFZip.InvalidParams;
 
 public class Main {
 
@@ -15,10 +17,10 @@ public class Main {
     @Option(name = "-d", aliases = {"--decompress"}, usage = "Режим распаковки", forbids = {"-c"})
     private boolean decompressMode = false;
 
-    @Option(name = "-bs", aliases = {"--buffer-size"}, usage = "Размер буфера (в байтах)", required = true)
+    @Option(name = "-bs", aliases = {"--buffer-size"}, usage = "Размер буфера (в байтах)")
     private int bufferSize;
 
-    @Option(name = "-ds", aliases = {"--dict-size"}, usage = "Размер словаря (в байтах)", required = true)
+    @Option(name = "-ds", aliases = {"--dict-size"}, usage = "Размер словаря (в байтах)")
     private int dictSize;
 
     @Argument(required = true, usage = "Входной файл", metaVar = "входной_файл", index = 0)
@@ -27,49 +29,30 @@ public class Main {
     @Argument(required = true, usage = "Выходной файл", metaVar = "выходной_файл", index = 1)
     private String outputFile;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws CmdLineException {
         FFZip ffZip = new FFZip();
-        CmdLineParser parser = new CmdLineParser(ffZip);
+        Main params = new Main();
+        CmdLineParser parser = new CmdLineParser(params);
+        parser.parseArgument(args);
 
-        try {
-            parser.parseArgument(args);
-
-            if (!ffZip.compressMode && !ffZip.decompressMode) {
-                throw new CmdLineException(parser, "Необходимо указать режим: -c или -d");
+        if (params.compressMode) {
+            try {
+                ffZip.compress(params.inputFile, params.outputFile, params.dictSize, params.bufferSize);
             }
-
-            if (ffZip.compressMode) {
-                ffZip.compress(ffZip.inputFile, ffZip.outputFile, ffZip.dictSize, ffZip.bufferSize);
-            } else {
-                ffZip.decompress(ffZip.inputFile, ffZip.outputFile);
+            catch (InvalidParams e ) {
+                System.out.println(e.getMessage());
             }
-        } catch (CmdLineException e) {
-            System.err.println(e.getMessage());
-            parser.printUsage(System.err);
+        }
+        else {
+            try {
+                ffZip.decompress(params.inputFile, params.outputFile);
+            }
+            catch (FileAreDamaged e) {
+                System.out.println(e.getMessage());
+            }
         }
     }
 
-    private void compressFile() {
-        // Реализация сжатия файла
-        System.out.println("Сжатие файла: " + fileName);
-        System.out.println("Размер буфера: " + bufferSize + " байт");
-        System.out.println("Размер словаря: " + dictSize + " байт");
-        // Добавьте вашу логику сжатия здесь
-    }
 
-    private void decompressFile() {
-        // Реализация распаковки файла
-        System.out.println("Распаковка файла: " + fileName);
-        // Добавьте вашу логику распаковки здесь
-    }
-
-//    public static void main(String[] args) {
-//        FFZip zip = new FFZip();
-//
-//
-//
-//        zip.compress("input.txt", "outputSaw.txt", 1024, 128);
-//        zip.decompress("outputSaw.txt", "decode.txt");
-//    }
 }
 

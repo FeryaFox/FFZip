@@ -1,12 +1,9 @@
 package ru.feryafox.LZFamily.LZ77;
 
-import ru.feryafox.Huffman.Huffman;
 import ru.feryafox.LZFamily.Base.*;
 
-import java.io.*;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.Queue;
 
 
@@ -48,7 +45,6 @@ public final class LZ77 implements LZBase {
                 while (dictBuffer.size() < bufferSize - 1) {
                     int curIndex = indexOfCur + dictBuffer.size();
                     if (curIndex > dictSize - 1) {
-//                        dictBuffer.add(buffer.poll());
                         break;
                     }
                     char q = dict.get(curIndex);
@@ -82,11 +78,6 @@ public final class LZ77 implements LZBase {
                 dictBuffer.clear();
             }
         }
-
-
-//        System.out.println(buffer);
-//        System.out.println(dict);
-//        System.out.println(result.toString());
 
         return new LZResult(new LZ77CodeInfo(dictSize, bufferSize), result);
     }
@@ -130,79 +121,4 @@ public final class LZ77 implements LZBase {
 
         return result.toString();
     }
-
-
-    public static void main(String[] args) throws IOException {
-
-        LZ77 lz77 = new LZ77();
-
-//        LZResult q = lz77.code("красная краска", 9, 4, LZ77::codeToString);
-//        writeToFile(q, "test.txt");
-//        System.out.println(readFromFile("test.txt"));
-//        LZResult q;
-//        try (BufferedReader reader = new BufferedReader(new FileReader("inputSaw.txt"))) {
-//            StringBuilder fileContent = new StringBuilder();
-//            String line;
-//            while ((line = reader.readLine()) != null) {
-//                fileContent.append(line).append("\n");
-//            }
-////            String qq = Huffman.code(fileContent.toString()).codeString();
-//             q = lz77.code(fileContent.toString(), 2048, 128);
-//            System.out.println(q);
-//            try (FileWriter fileWriter = new FileWriter("outputW.txt")) {
-//                fileWriter.write(String.valueOf(q.code()));
-//            } catch (IOException e) {
-//                System.err.println("Ошибка при записи в файл: " + e.getMessage());
-//            }
-//        }
-
-     LZResult q = lz77.code("красная краска", 9, 4);
-        System.out.println(lz77.decode(q));
-
-
-    }
-
-//    public static void writeToFile(LZResult result, String filePath) throws IOException {
-//        try (DataOutputStream dos = new DataOutputStream(new FileOutputStream(filePath))) {
-//            // Записываем информацию о размерах словаря и буфера
-//            LZ77CodeInfo info = (LZ77CodeInfo) result.codeInfo();
-//            dos.writeInt(info.getDictSize());
-//            dos.writeInt(info.getBuffSize());
-//
-//            // Парсим и записываем коды
-//            String[] codes = result.code().split(",");
-//            dos.writeInt(codes.length / 3); // количество кодов
-//
-//            for (int i = 0; i < codes.length; i += 3) {
-//                dos.writeInt(Integer.parseInt(codes[i]));     // offset
-//                dos.writeInt(Integer.parseInt(codes[i + 1])); // length
-//                dos.writeChar(codes[i + 2].charAt(0));        // discord letter
-//            }
-//        }
-//    }
-//
-//    public static LZResult readFromFile(String filePath) throws IOException {
-//        try (DataInputStream dis = new DataInputStream(new FileInputStream(filePath))) {
-//            // Читаем информацию о размерах
-//            int dictSize = dis.readInt();
-//            int bufferSize = dis.readInt();
-//            LZ77CodeInfo info = new LZ77CodeInfo(dictSize, bufferSize);
-//
-//            // Читаем коды
-//            int codesCount = dis.readInt();
-//            StringBuilder result = new StringBuilder();
-//
-//            for (int i = 0; i < codesCount; i++) {
-//                int offset = dis.readInt();
-//                int length = dis.readInt();
-//                char discordLetter = dis.readChar();
-//
-//                result.append(offset).append(",")
-//                        .append(length).append(",")
-//                        .append(discordLetter).append(",");
-//            }
-//
-//            return new LZResult(info, result.toString());
-//        }
-//    }
 }

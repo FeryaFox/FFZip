@@ -19,8 +19,13 @@ import java.util.Map;
 public class FFZip {
     private final LZBase lzBase = new LZ77();
 
-    public void compress(String inputFile, String outputFile, int dictSize, int bufferSize) {
+    public void compress(String inputFile, String outputFile, int dictSize, int bufferSize) throws InvalidParams {
         try (BufferedReader reader = new BufferedReader(new FileReader(inputFile))) {
+
+            if (dictSize > 60000 || bufferSize > 60000) {
+                throw new InvalidParams();
+            }
+
             StringBuilder fileContent = new StringBuilder();
             String line;
 
@@ -32,42 +37,37 @@ public class FFZip {
             LZResult lzCodeInfo = lzBase.code(hr.codeString(), dictSize, bufferSize);
 
             writeToFile(outputFile, lzCodeInfo, hr);
-
-//            try (FileWriter fileWriter = new FileWriter("outputW.txt")) {
-//                fileWriter.write(String.valueOf(q.code()));
-//            } catch (IOException e) {
-//                System.err.println("Ошибка при записи в файл: " + e.getMessage());
-//            }
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         } catch (IOException e) {
             throw new RuntimeException(e);
+        } catch (InvalidParams e) {
+          throw new InvalidParams();
         }
     }
 
-    public void decompress(String inputFile, String outputFile) {
+    public void decompress(String inputFile, String outputFile) throws FileAreDamaged {
         try (BufferedReader reader = new BufferedReader(new FileReader(inputFile))) {
             List<LZCode> lzCodes = new ArrayList<>();
 
             int offset;
             int length;
-            char discordLetter;
-            int discordLetterT;
+            int discordLetter;
             while ((offset = reader.read()) != -1) {
                 length = reader.read();
-                discordLetterT = reader.read();
+                discordLetter = reader.read();
 
 
-                if (offset == 65535 || length == 65535 || discordLetterT == 65535) {
+                if (offset == 65535 && length == 65535 && discordLetter == 65535) {
                     break;
                 }
 
-                lzCodes.add(new LZ77Code(offset, length, convertUnicodeToChar((char) discordLetterT)));
+                lzCodes.add(new LZ77Code(offset, length, convertUnicodeToChar((char) discordLetter)));
 
             }
 
             if (offset == -1) {
-                System.out.println("Файл слишком поврежден или имеет неверный формат");
+                throw new FileAreDamaged(inputFile);
             }
 
             while ((offset = reader.read()) == 65535) {}
@@ -87,6 +87,7 @@ public class FFZip {
 
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
                 writer.write(decodedString);
+                System.out.println("Файл успешно расжат в файл " + outputFile);
             } catch (IOException e) {
                 System.err.println("Ошибка при записи в файл: " + e.getMessage());
             }
@@ -94,6 +95,8 @@ public class FFZip {
             throw new RuntimeException(e);
         } catch (IOException e) {
             throw new RuntimeException(e);
+        } catch (FileAreDamaged e) {
+            throw new FileAreDamaged(inputFile);
         }
     }
 
@@ -117,19 +120,7 @@ public class FFZip {
                 writer.write(huffmanResult.frequencies().get(c));
             }
 
-            System.out.println("Данные успешно записаны в файл.");
-        } catch (IOException e) {
-            System.err.println("Ошибка при записи в файл: " + e.getMessage());
-        }
-
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("tt.txt"))) {
-            for (LZCode element: lzResult.code()) {
-                LZ77Code lz77Code = (LZ77Code) element;
-                writer.write(String.valueOf(lz77Code.getOffset()));
-                writer.write(String.valueOf(lz77Code.getLength()));
-                writer.write(lz77Code.getDiscordLetter());
-            }
-            System.out.println("Данные успешно записаны в файл.");
+            System.out.println("Файл успешно сжат в " + outputFile);
         } catch (IOException e) {
             System.err.println("Ошибка при записи в файл: " + e.getMessage());
         }
