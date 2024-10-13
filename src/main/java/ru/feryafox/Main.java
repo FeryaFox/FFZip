@@ -23,6 +23,9 @@ public class Main {
     @Option(name = "-ds", aliases = {"--dict-size"}, usage = "Размер словаря (в байтах)")
     private int dictSize;
 
+    @Option(name = "-o", aliases = {"--optimization"}, usage = "Включить оптимизацию", depends = {"-c"})
+    private boolean optimizationEnabled = false;
+
     @Argument(required = true, usage = "Входной файл", metaVar = "входной_файл", index = 0)
     private String inputFile;
 
@@ -37,22 +40,16 @@ public class Main {
 
         if (params.compressMode) {
             try {
-                ffZip.compress(params.inputFile, params.outputFile, params.dictSize, params.bufferSize);
-            }
-            catch (InvalidParams e ) {
+                ffZip.compress(params.inputFile, params.outputFile, params.dictSize, params.bufferSize, params.optimizationEnabled);
+            } catch (InvalidParams e) {
                 System.out.println(e.getMessage());
             }
-        }
-        else {
+        } else if (params.decompressMode) {
             try {
                 ffZip.decompress(params.inputFile, params.outputFile);
-            }
-            catch (FileAreDamaged e) {
+            } catch (FileAreDamaged e) {
                 System.out.println(e.getMessage());
             }
         }
     }
-
-
 }
-

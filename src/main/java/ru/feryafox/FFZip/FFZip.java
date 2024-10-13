@@ -17,9 +17,9 @@ import java.util.List;
 import java.util.Map;
 
 public class FFZip {
-    private final LZBase lzBase = new LZ77();
+    private final LZ77 lzBase = new LZ77();
 
-    public void compress(String inputFile, String outputFile, int dictSize, int bufferSize) throws InvalidParams {
+    public void compress(String inputFile, String outputFile, int dictSize, int bufferSize, boolean optimizationEnabled) throws InvalidParams {
         try (BufferedReader reader = new BufferedReader(new FileReader(inputFile))) {
 
             if (dictSize > 60000 || bufferSize > 60000) {
@@ -34,7 +34,7 @@ public class FFZip {
             }
 
             HuffmanResult hr = Huffman.code(fileContent.toString());
-            LZResult lzCodeInfo = lzBase.code(hr.codeString(), dictSize, bufferSize);
+            LZResult lzCodeInfo = lzBase.code(hr.codeString(), dictSize, bufferSize, optimizationEnabled);
 
             writeToFile(outputFile, lzCodeInfo, hr);
         } catch (FileNotFoundException e) {
