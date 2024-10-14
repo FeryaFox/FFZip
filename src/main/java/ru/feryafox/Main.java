@@ -23,8 +23,8 @@ public class Main {
     @Option(name = "-ds", aliases = {"--dict-size"}, usage = "Размер словаря (в байтах)")
     private int dictSize;
 
-    @Option(name = "-o", aliases = {"--optimization"}, usage = "Включить оптимизацию", depends = {"-c"})
-    private boolean optimizationEnabled = false;
+    @Option(name = "-od", aliases = {"--optimization-disable"}, usage = "Выключить оптимизацию", depends = {"-c"})
+    private boolean optimizationDisabled = false;
 
     @Argument(required = true, usage = "Входной файл", metaVar = "входной_файл", index = 0)
     private String inputFile;
@@ -40,7 +40,7 @@ public class Main {
 
         if (params.compressMode) {
             try {
-                ffZip.compress(params.inputFile, params.outputFile, params.dictSize, params.bufferSize, params.optimizationEnabled);
+                ffZip.compress(params.inputFile, params.outputFile, params.dictSize, params.bufferSize, params.optimizationDisabled);
             } catch (InvalidParams e) {
                 System.out.println(e.getMessage());
             }
