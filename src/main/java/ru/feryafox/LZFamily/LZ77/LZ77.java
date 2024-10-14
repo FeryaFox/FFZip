@@ -6,14 +6,71 @@ import java.util.*;
 
 public final class LZ77 implements LZBase {
 
-    @FunctionalInterface
-    private interface lzSteps {
-        void makeStep(ArrayList<LZCode> result, ArrayList<Character> dict, ArrayList<Character> buffer, ArrayList<Character> dictBuffer, int dictSize, int bufferSize, char cur);
-    }
-
     @Override
     public LZResult code(String s, int dictSize, int bufferSize) {
-        return lzSteps(s, dictSize, bufferSize, lz77StepCollection::lzStepWithoutOptimization);
+        ArrayList<LZCode> result = new ArrayList<>();
+
+        ArrayList<Character> dict = new ArrayList<>();
+        ArrayList<Character> buffer = new ArrayList<>();
+        ArrayList<Character> dictBuffer = new ArrayList<>();
+
+        int c = 0;
+        while (c < bufferSize && c < s.length()) {
+            buffer.add(s.charAt(c));
+            c++;
+        }
+
+        int i = 0;
+        while (i < dictSize) {
+            dict.add('\0');
+            i++;
+        }
+
+        while (!buffer.isEmpty()) {
+            char cur = buffer.removeFirst();
+            dictBuffer.add(cur);
+
+            if (buffer.isEmpty() || !dict.contains(cur)) {
+                dict.add(cur);
+                result.add(new LZ77Code(0, 0, cur));
+            } else {
+                int indexOfCur = dict.indexOf(cur);
+
+                while (dictBuffer.size() < bufferSize - 1) {
+                    int curIndex = indexOfCur + dictBuffer.size();
+                    if (curIndex > dictSize - 1) {
+                        break;
+                    }
+                    // вдруг кто-то это прочитает. Если ты вдруг спросишь, зачем эти странные переменные - отвечу: не знаю. Если просто в сравнение их запихнуть, то не всегда работает...
+                    char q = dict.get(curIndex);
+                    char qq = buffer.getFirst();
+                    if (q == qq) {
+                        dictBuffer.add(buffer.removeFirst());
+                    } else {
+                        break;
+                    }
+                }
+
+                dictBuffer.add(buffer.removeFirst());
+                dict.addAll(dictBuffer);
+                result.add(new LZ77Code(indexOfCur, dictBuffer.size() - 1, dictBuffer.getLast()));
+            }
+
+            while (dict.size() > dictSize) {
+                dict.removeFirst();
+            }
+
+            while (buffer.size() < bufferSize && c < s.length()) {
+                buffer.add(s.charAt(c));
+                c++;
+            }
+
+            if (!dictBuffer.isEmpty()) {
+                dictBuffer.clear();
+            }
+        }
+
+        return new LZResult(new LZ77CodeInfo(dictSize, bufferSize), result);
     }
 
     public LZResult newCode(String s, int dictSize, int bufferSize) {
@@ -49,7 +106,7 @@ public final class LZ77 implements LZBase {
 
                 for (int i = startIndex; i < dictSize; i++) {
                     for (int j = 0; j < buffer.size() && i + j < dictSize; j++) {
-                        // вдруг кто-то это прочитает. Если ты вдруг спросишь, зачем эти странные переменные - отвечу: хрен его знает. Если просто в сравнение их запихнуть, то не всегда работает...
+                        // вдруг кто-то это прочитает. Если ты вдруг спросишь, зачем эти странные переменные - отвечу: не знаю. Если просто в сравнение их запихнуть, то не всегда работает...
                         char q = dict.get(i + j);
                         char qq = buffer.get(j);
                         if (q == qq) {
@@ -89,68 +146,6 @@ public final class LZ77 implements LZBase {
         return new LZResult(new LZ77CodeInfo(dictSize, bufferSize), result);
     }
 
-    private LZResult lzSteps(String s, int dictSize, int bufferSize, lzSteps lzSteps_) {
-        ArrayList<LZCode> result = new ArrayList<>();
-        ArrayList<Character> dict = new ArrayList<>();
-        ArrayList<Character> buffer = new ArrayList<>();
-        ArrayList<Character> dictBuffer = new ArrayList<>();
-
-        int c = fillDictAndBuffer(dict, buffer, dictSize, bufferSize, s);
-
-        while (!buffer.isEmpty()) {
-            char cur = buffer.remove(0); 
-            dictBuffer.add(cur);
-
-            if (buffer.isEmpty() || !dict.contains(cur)) {
-                dict.add(cur);
-                result.add(new LZ77Code(0, 0, cur));
-            } else {
-                if (result.size() % 10000 == 0) {
-                    System.out.println(result.size());
-                }
-                lzSteps_.makeStep(result, dict, buffer, dictBuffer, dictSize, bufferSize, cur);
-            }
-
-            while (dict.size() > dictSize) {
-                dict.remove(0);
-            }
-
-            while (buffer.size() < bufferSize && c < s.length()) {
-                buffer.add(s.charAt(c));
-                c++;
-            }
-
-            if (!dictBuffer.isEmpty()) {
-                dictBuffer.clear();
-            }
-        }
-
-        return new LZResult(new LZ77CodeInfo(dictSize, bufferSize), result);
-    }
-
-    public LZResult code(String s, int dictSize, int bufferSize, boolean optimizationEnabled) {
-        if (!optimizationEnabled) {
-            return lzSteps(s, dictSize, bufferSize, lz77StepCollection::lzStepWithoutOptimization);
-        }
-        return lzSteps(s, dictSize, bufferSize, lz77StepCollection::lzStepWithOptimization);
-    }
-
-    private int fillDictAndBuffer(ArrayList<Character> dict, ArrayList<Character> buffer, int dictSize, int bufferSize, String s) {
-        int c = 0;
-        while (c < bufferSize && c < s.length()) {
-            buffer.add(s.charAt(c));
-            c++;
-        }
-
-        int i = 0;
-        while (i < dictSize) {
-            dict.add('\0');
-            i++;
-        }
-
-        return c;
-    }
-
     @Override
     public String decode(LZResult coded) {
         StringBuilder result = new StringBuilder();
@@ -178,38 +173,10 @@ public final class LZ77 implements LZBase {
 
             dict.add(code.getDiscordLetter());
             while (dict.size() > dictSize) {
-                dict.remove(0);  // Удаляем первый элемент
+                dict.removeFirst();
             }
         }
 
         return result.toString();
-    }
-
-    static class lz77StepCollection {
-        public static void lzStepWithoutOptimization(ArrayList<LZCode> result, ArrayList<Character> dict, ArrayList<Character> buffer, ArrayList<Character> dictBuffer, int dictSize, int bufferSize, char cur) {
-            int indexOfCur = dict.indexOf(cur);
-
-            while (dictBuffer.size() < bufferSize - 1) {
-                int curIndex = indexOfCur + dictBuffer.size();
-                if (curIndex > dictSize - 1) {
-                    break;
-                }
-                char q = dict.get(curIndex);
-                char qq = buffer.get(0);  // Получаем первый элемент
-                if (q == qq) {
-                    dictBuffer.add(buffer.remove(0));  // Удаляем первый элемент
-                } else {
-                    break;
-                }
-            }
-
-            dictBuffer.add(buffer.remove(0));  // Удаляем первый элемент
-            dict.addAll(dictBuffer);
-            result.add(new LZ77Code(indexOfCur, dictBuffer.size() - 1, dictBuffer.get(dictBuffer.size() - 1)));
-        }
-
-        public static void lzStepWithOptimization(ArrayList<LZCode> result, ArrayList<Character> dict, ArrayList<Character> buffer, ArrayList<Character> dictBuffer, int dictSize, int bufferSize, char cur) {
-
-        }
     }
 }
