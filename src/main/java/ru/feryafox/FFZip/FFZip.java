@@ -69,7 +69,7 @@ public class FFZip {
                     break;
                 }
 
-                lzCodes.add(new LZ77Code(offset, length, convertUnicodeToChar((char) discordLetter)));
+                lzCodes.add(new LZ77Code(offset, length, convertUnicodeToChar((byte) discordLetter)));
 
             }
 
@@ -137,12 +137,14 @@ public class FFZip {
     // моя любимая рубрика: костыли.... кто видит это... простите... не хотел...
     // ПРОШУ, НЕ СМОТРИТЕ... ПРОШУ... УМОЛЯЮ... БЕРЕГИТЕ ПСИХИКУ СВОЮ...
     private byte convertCharToByte(char c) {
-        if (c == '0') return 0;
-        return 1;
+//        if (c == '0') return 0;
+//        return 1;
+        return (byte) c;
     }
 
-    private char convertUnicodeToChar(char c) {
-        if (c == '\u0000') return '0';
-        else return '1';
+    private char convertUnicodeToChar(byte c) {
+//        if (c == '\u0000') return '0';
+//        else return '1';
+        return (char) c;
     }
 }
