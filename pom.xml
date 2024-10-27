@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>ru.feryafox</groupId>
-    <artifactId>SimpleArchiver</artifactId>
+    <artifactId>FFZip</artifactId>
     <version>1.2</version>
 
     <properties>
